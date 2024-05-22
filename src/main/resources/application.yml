@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: syx-gateway
+
+server:
+  port: 8888
+
+syx:
+  registry:
+    client:
+      servers: http://localhost:8484
+
+logging:
+  level:
+    cn.syx.registry:
+      DEBUG

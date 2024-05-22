@@ -1,0 +1,13 @@
+### GET hello
+GET http://localhost:8888/hello
+
+
+### POST user
+POST http://localhost:8888/gw/cn.syx.rpc.demo.api.UserService
+Content-Type: application/json
+
+{
+  "service": "cn.syx.rpc.demo.api.UserService",
+  "methodSign": "findById(int)",
+  "args": [10000]
+}
