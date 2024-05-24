@@ -1,4 +1,4 @@
-package cn.syx.gateway;
+package cn.syx.gateway.core;
 
 import cn.syx.gateway.other.LoadBalancer;
 import cn.syx.gateway.other.RoundRibbonLoadBalancer;
