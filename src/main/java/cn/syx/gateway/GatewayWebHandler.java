@@ -8,26 +8,33 @@ import cn.syx.registry.client.model.SyxRegistryInstanceMeta;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebHandler;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
-@Component
-public class GatewayHandler {
+@Component("gatewayWebHandler")
+public class GatewayWebHandler implements WebHandler {
 
     @Autowired
     private SyxRegistryClient registryClient;
 
     private static LoadBalancer<SyxRegistryInstanceMeta> lb = new RoundRibbonLoadBalancer<>();
 
-    public Mono<ServerResponse> handle(ServerRequest request) {
-        String service = request.path().substring(4);
+    @NotNull
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange) {
+        log.info("");
+        String service = exchange.getRequest().getPath().value().substring(4);
 
         ServiceMeta meta = ServiceMeta.builder()
                 .namespace("default")
@@ -41,26 +48,28 @@ public class GatewayHandler {
         SyxRegistryInstanceMeta instanceMeta = lb.choose(instanceMetas);
         log.info("select instance: {}", instanceMeta);
 
-        Mono<String> req = request.bodyToMono(String.class);
-        return req.flatMap(e -> invokeFromRegistry(e, instanceMeta.toUrl()));
+        Flux<DataBuffer> request = exchange.getRequest().getBody();
+        return request.flatMap(req -> invokeFromRegistry(exchange, req, instanceMeta.toUrl())).next();
     }
 
     @NotNull
-    private static Mono<ServerResponse> invokeFromRegistry(String request, String url) {
+    private static Mono<Void> invokeFromRegistry(ServerWebExchange exchange, DataBuffer body, String url) {
         WebClient client = WebClient.create(url);
-        Mono<String> body = client.post()
+        Mono<String> data = client.post()
                 .header("Content-Type", "application/json")
-                .bodyValue(request)
+                .bodyValue(body)
                 .retrieve()
                 .toEntity(String.class)
-                .map(ResponseEntity::getBody);
-        return body.flatMap(GatewayHandler::parseBody);
+                .mapNotNull(ResponseEntity::getBody);
+        return data.flatMap(d -> parseData(exchange, d));
     }
 
     @NotNull
-    private static Mono<ServerResponse> parseBody(String body) {
-        return ServerResponse.ok()
-                .header("Content-Type", "application/json")
-                .bodyValue(body);
+    private static Mono<Void> parseData(ServerWebExchange exchange, String data) {
+        byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponse().getHeaders().add("Content-Type", "application/json");
+        return exchange.getResponse().writeWith(Mono.just(
+                exchange.getResponse().bufferFactory().wrap(bytes)
+        ));
     }
 }
