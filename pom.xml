@@ -27,6 +27,12 @@
         </dependency>
 
         <dependency>
+            <groupId>cn.syx.toolbox</groupId>
+            <artifactId>tool-strategy</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>cn.syx</groupId>
             <artifactId>syx-registry-client</artifactId>
             <version>0.0.1-SNAPSHOT</version>
@@ -72,6 +78,20 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
