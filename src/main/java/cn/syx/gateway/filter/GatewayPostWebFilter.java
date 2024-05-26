@@ -16,9 +16,7 @@ public class GatewayPostWebFilter implements WebFilter {
     @Override
     public Mono<Void> filter(@NotNull ServerWebExchange exchange, WebFilterChain chain) {
         return chain.filter(exchange).doFinally(
-                s -> {
-                    log.info("===> post filter");
-                }
+                s -> log.info("===> post filter")
         );
     }
 }

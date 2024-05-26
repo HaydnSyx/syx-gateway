@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
-public class GatewayWebFilter implements WebFilter {
+public class GatewayPreWebFilter implements WebFilter {
 
     @NotNull
     @Override

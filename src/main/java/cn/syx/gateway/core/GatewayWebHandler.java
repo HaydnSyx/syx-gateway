@@ -1,10 +1,11 @@
 package cn.syx.gateway.core;
 
-import cn.syx.gateway.other.LoadBalancer;
-import cn.syx.gateway.other.RoundRibbonLoadBalancer;
-import cn.syx.gateway.other.ServiceMeta;
 import cn.syx.registry.client.SyxRegistryClient;
-import cn.syx.registry.client.model.SyxRegistryInstanceMeta;
+import cn.syx.registry.core.model.RegistryInstanceMeta;
+import cn.syx.registry.core.model.instance.RpcServiceMeta;
+import cn.syx.toolbox.strategy.lb.LoadBalancer;
+import cn.syx.toolbox.strategy.lb.LoadBalancerTool;
+import cn.syx.toolbox.strategy.lb.impl.RoundRibbonLoadBalancer;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,6 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebHandler;
 import reactor.core.publisher.Flux;
@@ -25,10 +25,11 @@ import java.util.List;
 @Component("gatewayWebHandler")
 public class GatewayWebHandler implements WebHandler {
 
+    private static final LoadBalancer<RegistryInstanceMeta> lb
+            = LoadBalancerTool.getInstance().get(RoundRibbonLoadBalancer.class);
+
     @Autowired
     private SyxRegistryClient registryClient;
-
-    private static LoadBalancer<SyxRegistryInstanceMeta> lb = new RoundRibbonLoadBalancer<>();
 
     @NotNull
     @Override
@@ -36,16 +37,15 @@ public class GatewayWebHandler implements WebHandler {
         log.info("");
         String service = exchange.getRequest().getPath().value().substring(4);
 
-        ServiceMeta meta = ServiceMeta.builder()
-                .namespace("default")
+        RpcServiceMeta meta = RpcServiceMeta.builder()
                 .env("dev")
+                .namespace("default")
                 .group("app")
                 .name(service)
                 .version("1.0.0")
                 .build();
-        List<SyxRegistryInstanceMeta> instanceMetas = registryClient.fetchAll(meta.toPath());
-
-        SyxRegistryInstanceMeta instanceMeta = lb.choose(instanceMetas);
+        List<RegistryInstanceMeta> instanceMetas = registryClient.fetchAll(meta.identity());
+        RegistryInstanceMeta instanceMeta = lb.choose(instanceMetas);
         log.info("select instance: {}", instanceMeta);
 
         Flux<DataBuffer> request = exchange.getRequest().getBody();

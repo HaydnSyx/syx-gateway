@@ -6,7 +6,7 @@ GET http://localhost:8888/hello
 GET http://localhost:8888/ga?name=ga
 
 ### POST user
-POST http://localhost:8888/gw/cn.syx.rpc.demo.api.UserService?mock=true
+POST http://localhost:8888/gw/cn.syx.rpc.demo.api.UserService
 Content-Type: application/json
 
 {
