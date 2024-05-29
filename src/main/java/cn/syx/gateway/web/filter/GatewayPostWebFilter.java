@@ -1,4 +1,4 @@
-package cn.syx.gateway.filter;
+package cn.syx.gateway.web.filter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;

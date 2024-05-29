@@ -1,5 +1,7 @@
-package cn.syx.gateway.core;
+package cn.syx.gateway.plugin.impl;
 
+import cn.syx.gateway.plugin.GatewayPluginChain;
+import cn.syx.gateway.plugin.AbstractGatewayPlugin;
 import cn.syx.registry.client.SyxRegistryClient;
 import cn.syx.registry.core.model.RegistryInstanceMeta;
 import cn.syx.registry.core.model.instance.RpcServiceMeta;
@@ -14,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebHandler;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -22,8 +23,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
-@Component("gatewayWebHandler")
-public class GatewayWebHandler implements WebHandler {
+@Component
+public class SyxRpcPlugin extends AbstractGatewayPlugin {
+
+    private static final String NAME = "syxrpc";
+    private static final String URL_PREFIX = GATEWAY_PREFIX + "/" + NAME + "/";
 
     private static final LoadBalancer<RegistryInstanceMeta> lb
             = LoadBalancerTool.getInstance().get(RoundRibbonLoadBalancer.class);
@@ -31,12 +35,20 @@ public class GatewayWebHandler implements WebHandler {
     @Autowired
     private SyxRegistryClient registryClient;
 
-    @NotNull
     @Override
-    public Mono<Void> handle(ServerWebExchange exchange) {
-        log.info("");
-        String service = exchange.getRequest().getPath().value().substring(4);
+    public String name() {
+        return NAME;
+    }
 
+    @Override
+    public boolean doSupport(ServerWebExchange exchange) {
+        return exchange.getRequest().getPath().value().startsWith(URL_PREFIX);
+    }
+
+    @Override
+    public Mono<Void> doHandle(ServerWebExchange exchange, GatewayPluginChain chain) {
+        log.info("===> syx rpc plugin start");
+        String service = exchange.getRequest().getPath().value().substring(URL_PREFIX.length());
         RpcServiceMeta meta = RpcServiceMeta.builder()
                 .env("dev")
                 .namespace("default")
@@ -49,7 +61,8 @@ public class GatewayWebHandler implements WebHandler {
         log.info("select instance: {}", instanceMeta);
 
         Flux<DataBuffer> request = exchange.getRequest().getBody();
-        return request.flatMap(req -> invokeFromRegistry(exchange, req, instanceMeta.toUrl())).next();
+        return request.single().flatMap(req -> invokeFromRegistry(exchange, req, instanceMeta.toUrl()))
+                .then(chain.handle(exchange));
     }
 
     @NotNull
@@ -66,6 +79,7 @@ public class GatewayWebHandler implements WebHandler {
 
     @NotNull
     private static Mono<Void> parseData(ServerWebExchange exchange, String data) {
+        log.info("parse data: {}", data);
         byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
         exchange.getResponse().getHeaders().add("Content-Type", "application/json");
         return exchange.getResponse().writeWith(Mono.just(

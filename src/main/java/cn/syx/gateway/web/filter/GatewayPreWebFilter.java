@@ -1,5 +1,6 @@
-package cn.syx.gateway.filter;
+package cn.syx.gateway.web.filter;
 
+import cn.syx.toolbox.base.StringTool;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
@@ -16,9 +17,12 @@ public class GatewayPreWebFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, @NotNull WebFilterChain chain) {
         log.info("===>>> Syx Gateway web filter ...");
-        if (exchange.getRequest().getQueryParams().getFirst("mock") == null) {
+        String mockParam = exchange.getRequest().getQueryParams().getFirst("mock");
+
+        if (StringTool.isBlank(mockParam)) {
             return chain.filter(exchange);
         }
+
         String mock = """
                 {"result": "mock"}
                 """;

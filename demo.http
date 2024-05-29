@@ -6,7 +6,27 @@ GET http://localhost:8888/hello
 GET http://localhost:8888/ga?name=ga
 
 ### POST user
-POST http://localhost:8888/gw/cn.syx.rpc.demo.api.UserService
+POST http://localhost:8888/gw/syxrpc/cn.syx.rpc.demo.api.UserService
+Content-Type: application/json
+
+{
+  "service": "cn.syx.rpc.demo.api.UserService",
+  "methodSign": "findById(int)",
+  "args": [10000]
+}
+
+### POST direct
+POST http://localhost:8888/gw/direct/cn.syx.rpc.demo.api.UserService
+Content-Type: application/json
+
+{
+  "service": "cn.syx.rpc.demo.api.UserService",
+  "methodSign": "findById(int)",
+  "args": [10000]
+}
+
+### POST direct backend
+POST http://localhost:8888/gw/direct/cn.syx.rpc.demo.api.UserService?backend=http://localhost:6071/rpc
 Content-Type: application/json
 
 {
